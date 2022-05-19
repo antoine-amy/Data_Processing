@@ -5,6 +5,7 @@ Notebooks and modules for the analysis of the ABALONE pulses from the Geant4 sim
     Data_Processing
     │  
     ├── src                            # Project source code
+    ├── data                           # Data files from simulations
     ├── notebooks                      # Example notebooks
     ├── .gitignore                     # Specifies intentionally untracked files to ignore
     └── README.md                      # README file
