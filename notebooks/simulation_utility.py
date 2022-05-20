@@ -510,8 +510,9 @@ def calculate_integrals(data, nn = 0, inf = 480, sup = 550, calc_int = False,
         diff = time.time() - t_start
         if ((i+1) % 5000) == 0:
             print(f'event n. {i+1}, time to process: {diff:.2f}')
-        
-        bl = np.mean(data[i][hsize-100:hsize-30])
+        # fit parameters ----- could be needed to improve them
+        dtl, dtr, tfit, tlim, tll = -15, 110, 350, 600, 30
+        bl = np.mean(data[i][hsize+2*dtl:hsize+dtl])
         wf = data[i]-bl
         #wf = bl - data[i]
         max_pos = np.where(wf==np.max(wf))[0][0]
@@ -525,9 +526,9 @@ def calculate_integrals(data, nn = 0, inf = 480, sup = 550, calc_int = False,
             tau = 0
         
         # INTEGRAL CALCULATION
-        ww, hh = 8, 14
+        ww, hh = 8, 12
         dled = wf[ww:] - wf[:-ww]
-        listpeaks,_ = find_peaks(dled, height=hh,distance=10)
+        listpeaks,_ = find_peaks(dled, height=hh,distance=20)
         peakpos = listpeaks[(listpeaks < sup) & (listpeaks > inf)]
         if (len(peakpos) != 1) or (maxx <= 0) or (calc_int == False):
             if plot & calc_int:
@@ -541,8 +542,6 @@ def calculate_integrals(data, nn = 0, inf = 480, sup = 550, calc_int = False,
             POSs.append(0)
         else:
             peakpos = peakpos[0]
-            # fit parameters ----- could be needed to improve them
-            dtl, dtr, tfit, tlim, tll = -15, 110, 350, 600, 30
             tl = tt[(tt <= peakpos+dtr) & (tt >= peakpos+dtl)]
             wfl = wf[(tt <= peakpos+dtr) & (tt >= peakpos+dtl)]
             Il = integ.simps(wfl, tl)
