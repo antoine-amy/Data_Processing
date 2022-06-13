@@ -19,23 +19,25 @@ import iminuit
 import uproot
 
 
-def read_waveforms_from_json(path='/home/amy/ABALONE/ABALONE_simulation/results/SiPM', PE=1, angle=0, plot=False):
+def read_waveforms_from_json(path='/home/amy/ABALONE/ABALONE_simulation/results/SiPM', PE=1, angle=0, spec='', plot=False):
     wfs=[]
     t_start=time.time()
     #os.listdir(directory)
     i=0
-    filename = f'{path}/SiPM_readout_{PE}_{angle}_run_{i}.txt'
-    print(filename)
+    filename=f'{path}/SiPM_readout_{PE}_{angle}_run_{i}'+spec+'.txt'
     while os.path.isfile(filename):
         with open(filename) as f:
             for jsonObj in f:
-                wfDict = json.loads(jsonObj)
-                try: wfs.append(wfDict['voltages'])
-                except: pass
-        filename = f'{path}/SiPM_readout_{PE}_{angle}_run_{i}.txt'
-        i += 1
-    nwf = int(len(wfs)/2)
+                wfDict=json.loads(jsonObj)
+                #try: 
+                wfs.append(wfDict['voltages'])
+                #except: pass
+        print(filename)
+        i+=1
+        filename=f'{path}/SiPM_readout_{PE}_{angle}_run_{i}'+spec+'.txt'
+    nwf=int(len(wfs))
     print(f'Number of waveforms {nwf}, time to read {time.time() - t_start:.2f}')
+    
     if plot:
         plt.figure(figsize=(8,4.5))
         for i in range(nwf):
@@ -496,41 +498,41 @@ def e_stat_bootstrap(path,PE=1,angle=0):
 
 
 
-def calculate_integrals(data, nn = 0, inf = 480, sup = 550, calc_int = False,
-                        plot = False, save = False, info = 'LYSO_background' ):
-    if nn == 0: nn = len(data)
-    peakint = np.zeros(nn)
+def calculate_integrals(data, nn=0, inf=480, sup=550, calc_int=False, plot=False, save=False, info='LYSO_background'):
+    if nn==0: nn=len(data)
+    peakint=np.zeros(nn)
     print('Total events:',nn)
     MAXs, AREAs, POSs, TAUs, INTs = [], [], [], [], []
-    t_start = time.time()
-    wsize = data.shape[1]
-    hsize= int(wsize/2)
-    tt = np.array([i for i in range(wsize)]) # time in bin-size
+    t_start=time.time()
+
+    wsize=data.shape[1]
+    print(wsize)
+    hsize=int(wsize/2)
+    tt=np.array([i for i in range(wsize)]) # time in bin-size
+
     for i in range(nn):
-        diff = time.time() - t_start
-        if ((i+1) % 5000) == 0:
-            print(f'event n. {i+1}, time to process: {diff:.2f}')
+        diff=time.time()-t_start
+        if ((i+1)%5000)==0: print(f'event n. {i+1}, time to process: {diff:.2f}')
         # fit parameters ----- could be needed to improve them
         dtl, dtr, tfit, tlim, tll = -15, 110, 350, 600, 30
-        bl = np.mean(data[i][hsize+2*dtl:hsize+dtl])
-        wf = data[i]-bl
-        #wf = bl - data[i]
-        max_pos = np.where(wf==np.max(wf))[0][0]
-        maxx = np.max(wf)
-        area = np.sum(wf)
+        bl=np.mean(data[i][hsize+2*dtl:hsize+dtl])
+        wf=data[i]-bl
+        max_pos=np.where(wf==np.max(wf))[0][0]
+        maxx=np.max(wf)
+        area=np.sum(wf)
         try:
-            tt10 = np.where(wf[max_pos:]<maxx*0.1)[0][0] + max_pos
-            tt90 = np.where(wf[max_pos:]<maxx*0.9)[0][0] + max_pos
-            tau = tt10 - tt90
+            tt10=np.where(wf[max_pos:]<maxx*0.1)[0][0]+max_pos
+            tt90=np.where(wf[max_pos:]<maxx*0.9)[0][0]+max_pos
+            tau=tt10-tt90
         except:
-            tau = 0
+            tau=0
         
         # INTEGRAL CALCULATION
-        ww, hh = 8, 12
-        dled = wf[ww:] - wf[:-ww]
-        listpeaks,_ = find_peaks(dled, height=hh,distance=20)
-        peakpos = listpeaks[(listpeaks < sup) & (listpeaks > inf)]
-        if (len(peakpos) != 1) or (maxx <= 0) or (calc_int == False):
+        ww, hh=8, 12
+        dled=wf[ww:]-wf[:-ww]
+        listpeaks,_=find_peaks(dled, height=hh,distance=20)
+        peakpos=listpeaks[(listpeaks<sup) & (listpeaks>inf)]
+        if (len(peakpos)!=1) or (maxx<=0) or (calc_int==False):
             if plot & calc_int:
                 print('peak position not found in trigger region',listpeaks)
                 plt.figure(figsize=(12,6))
@@ -599,4 +601,39 @@ def calculate_integrals(data, nn = 0, inf = 480, sup = 550, calc_int = False,
     data['max_pos'] = POSs
     data['tau'] = TAUs
     if save: data.to_hdf(f'processed_data/data_tailFit_ABALONE_{volts}kV_SiPM2_{sipmv}V_{info}.h5', key='df', mode='w')
+    #print(data)
     return data
+
+def calculate_integrals_simple(data, inf=0, sup=1000): #just calculate the area, but support the no noise data, where tmin is not the same for every pulses
+    nn=len(data)
+    print('Total events:',nn)
+    AREAs=[]
+    for i in range(nn):
+        dtl, dtr, tfit, tlim, tll = -15, 110, 350, 600, 30
+        wsize=len(data[i])
+        hsize=int(wsize/2)
+        bl=np.mean(data[i][hsize+2*dtl:hsize+dtl])
+        wf=data[i]-bl
+        area=np.sum(wf)
+        AREAs.append(area)
+    data=pd.DataFrame(columns=['area'])
+    maxx=np.max(AREAs)
+    poss=np.argmax(AREAs)
+    print("Max=",maxx,", position=",poss) #doesnt work
+    data['area'] = AREAs
+    return data
+
+def plot_area(area, area2 = None, xrange=(0,30000), bins=150, log=False, norm=False):
+    print(f'n. events: {len(area)}')
+    h, x = np.histogram(area,bins=bins,range=xrange)
+    if area2 is not None:
+        h2, x2 = np.histogram(area2,bins=bins,range=xrange)
+    plt.figure(figsize=(19,9))
+    if norm==True:
+        h=[float(i)/max(h) for i in h]
+    plt.plot(x[1:],h,label='area')
+    print("Max=",np.max(h),", Position=",x[np.argmax(h)])
+    #if area2 is not None:
+        #plt.plot(x2[1:],h2,label='integrals')
+    if log: plt.yscale('log')
+    plt.legend()
