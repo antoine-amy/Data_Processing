@@ -625,12 +625,17 @@ def calculate_integrals_simple(data, inf=0, sup=1000): #just calculate the area,
 
 def plot_area(area, area2 = None, xrange=(0,30000), bins=150, log=False, norm=False):
     print(f'n. events: {len(area)}')
-    h, x = np.histogram(area,bins=bins,range=xrange)
-    if area2 is not None:
-        h2, x2 = np.histogram(area2,bins=bins,range=xrange)
-    plt.figure(figsize=(19,9))
+    if norm==False:
+        h, x = np.histogram(area,bins=bins,range=xrange)
+        if area2 is not None:
+            h2, x2 = np.histogram(area2,bins=bins,range=xrange)
     if norm==True:
-        h=[float(i)/max(h) for i in h]
+        h, x = np.histogram(area,bins=bins,range=xrange, density=True)
+        if area2 is not None:
+            h2, x2 = np.histogram(area2,bins=bins,range=xrange, density=True)
+    plt.figure(figsize=(19,9))
+    #if norm==True:
+        #h=[float(i)/max(h) for i in h]
     plt.plot(x[1:],h,label='area')
     print("Max=",np.max(h),", Position=",x[np.argmax(h)])
     #if area2 is not None:
